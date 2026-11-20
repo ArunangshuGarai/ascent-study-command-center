@@ -1,0 +1,19 @@
+services:
+  - type: web
+    name: ascent-gate-command-center
+    runtime: docker
+    plan: starter
+    healthCheckPath: /api/health
+    envVars:
+      - key: PORT
+        value: "8787"
+      - key: DATA_DIR
+        value: /data
+      - key: SESSION_DAYS
+        value: "30"
+      - key: COOKIE_SECURE
+        value: "1"
+    disk:
+      name: ascent-data
+      mountPath: /data
+      sizeGB: 1
