@@ -1,20 +1,13 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import { DatabaseSync } from 'node:sqlite';
 
-const dataDir = process.env.DATA_DIR
-  ? path.resolve(process.env.DATA_DIR)
-  : path.join(process.cwd(), 'data');
+const remoteUrl = process.env.TURSO_DATABASE_URL || process.env.LIBSQL_URL || '';
+const remoteToken = process.env.TURSO_AUTH_TOKEN || process.env.LIBSQL_AUTH_TOKEN || '';
+const isRemote = Boolean(remoteUrl);
 
-fs.mkdirSync(dataDir, { recursive: true });
+export const TOTAL_TOPIC_UNITS = 209;
 
-export const db = new DatabaseSync(path.join(dataDir, 'ascent.db'));
-
-db.exec(`
-  PRAGMA journal_mode = WAL;
-  PRAGMA foreign_keys = ON;
-  PRAGMA busy_timeout = 5000;
-
+const SCHEMA = `
   CREATE TABLE IF NOT EXISTS users (
     id TEXT PRIMARY KEY,
     name TEXT NOT NULL,
@@ -54,9 +47,78 @@ db.exec(`
     mock_avg REAL NOT NULL DEFAULT 0,
     updated_at TEXT NOT NULL
   );
-`);
+`;
 
-export const TOTAL_TOPIC_UNITS = 209;
+let localDb = null;
+let remoteClient = null;
+let initPromise = null;
+
+function toArgs(params = []) {
+  return params.map((value) => (value === undefined ? null : value));
+}
+
+export function databaseMode() {
+  return isRemote ? 'turso' : 'sqlite';
+}
+
+export function initDb() {
+  if (initPromise) return initPromise;
+  initPromise = (async () => {
+    if (isRemote) {
+      const { createClient } = await import('@libsql/client');
+      remoteClient = createClient({
+        url: remoteUrl,
+        authToken: remoteToken || undefined,
+      });
+      await remoteClient.executeMultiple(SCHEMA);
+      return;
+    }
+
+    const dataDir = process.env.DATA_DIR
+      ? path.resolve(process.env.DATA_DIR)
+      : path.join(process.cwd(), 'data');
+    fs.mkdirSync(dataDir, { recursive: true });
+    const { DatabaseSync } = await import('node:sqlite');
+    localDb = new DatabaseSync(path.join(dataDir, 'ascent.db'));
+    localDb.exec(`
+      PRAGMA journal_mode = WAL;
+      PRAGMA foreign_keys = ON;
+      PRAGMA busy_timeout = 5000;
+    `);
+    localDb.exec(SCHEMA);
+  })();
+  return initPromise;
+}
+
+export async function all(sql, params = []) {
+  await initDb();
+  if (remoteClient) {
+    const result = await remoteClient.execute({ sql, args: toArgs(params) });
+    return result.rows.map((row) => ({ ...row }));
+  }
+  return localDb.prepare(sql).all(...toArgs(params));
+}
+
+export async function get(sql, params = []) {
+  await initDb();
+  if (remoteClient) {
+    const result = await remoteClient.execute({ sql, args: toArgs(params) });
+    return result.rows[0] ? { ...result.rows[0] } : null;
+  }
+  return localDb.prepare(sql).get(...toArgs(params)) ?? null;
+}
+
+export async function run(sql, params = []) {
+  await initDb();
+  if (remoteClient) {
+    const result = await remoteClient.execute({ sql, args: toArgs(params) });
+    return {
+      changes: result.rowsAffected ?? 0,
+      lastInsertRowid: result.lastInsertRowid ?? null,
+    };
+  }
+  return localDb.prepare(sql).run(...toArgs(params));
+}
 
 export function emptyStats() {
   return {
@@ -136,8 +198,8 @@ export function computeStats(state) {
   };
 }
 
-export function readStats(userId) {
-  const row = db.prepare('SELECT * FROM user_stats WHERE user_id = ?').get(userId);
+export async function readStats(userId) {
+  const row = await get('SELECT * FROM user_stats WHERE user_id = ?', [userId]);
   if (!row) return emptyStats();
   return {
     xp: row.xp,
@@ -151,8 +213,8 @@ export function readStats(userId) {
   };
 }
 
-export function writeStats(userId, stats) {
-  db.prepare(`
+export async function writeStats(userId, stats) {
+  await run(`
     INSERT INTO user_stats (
       user_id, xp, completed, study_minutes, coverage,
       best_streak, mocks_taken, mock_avg, updated_at
@@ -166,7 +228,7 @@ export function writeStats(userId, stats) {
       mocks_taken = excluded.mocks_taken,
       mock_avg = excluded.mock_avg,
       updated_at = excluded.updated_at
-  `).run(
+  `, [
     userId,
     stats.xp,
     stats.completed,
@@ -176,11 +238,14 @@ export function writeStats(userId, stats) {
     stats.mocksTaken,
     stats.mockAvg,
     stats.updatedAt ?? new Date().toISOString(),
-  );
+  ]);
 }
 
-export function readPlanner(userId) {
-  const row = db.prepare('SELECT state, revision, updated_at FROM planner_states WHERE user_id = ?').get(userId);
+export async function readPlanner(userId) {
+  const row = await get(
+    'SELECT state, revision, updated_at FROM planner_states WHERE user_id = ?',
+    [userId],
+  );
   if (!row || !row.state) return { state: null, revision: 0, updatedAt: null };
   try {
     return { state: JSON.parse(row.state), revision: row.revision, updatedAt: row.updated_at };
@@ -189,23 +254,42 @@ export function readPlanner(userId) {
   }
 }
 
-export function writePlanner(userId, state) {
+export async function writePlanner(userId, state) {
   const now = new Date().toISOString();
   const stats = computeStats(state);
-  db.prepare(`
+  await run(`
     INSERT INTO planner_states (user_id, state, revision, updated_at)
     VALUES (?, ?, 1, ?)
     ON CONFLICT(user_id) DO UPDATE SET
       state = excluded.state,
       revision = planner_states.revision + 1,
       updated_at = excluded.updated_at
-  `).run(userId, JSON.stringify(state), now);
-  writeStats(userId, stats);
-  const row = db.prepare('SELECT revision FROM planner_states WHERE user_id = ?').get(userId);
+  `, [userId, JSON.stringify(state), now]);
+  await writeStats(userId, stats);
+  const row = await get('SELECT revision FROM planner_states WHERE user_id = ?', [userId]);
   return { revision: row?.revision ?? 1, stats, updatedAt: now };
 }
 
-export function pruneSessions() {
+export async function pruneSessions() {
   const now = new Date().toISOString();
-  db.prepare('DELETE FROM sessions WHERE expires_at <= ?').run(now);
+  await run('DELETE FROM sessions WHERE expires_at <= ?', [now]);
+}
+
+export async function closeDb() {
+  if (remoteClient) {
+    try {
+      remoteClient.close();
+    } catch {
+      // ignore
+    }
+    remoteClient = null;
+  }
+  if (localDb) {
+    try {
+      localDb.close();
+    } catch {
+      // ignore
+    }
+    localDb = null;
+  }
 }

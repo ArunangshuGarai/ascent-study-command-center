@@ -219,11 +219,15 @@ two days of work in one day.
 | --- | --- |
 | Client | React 19, TypeScript, Vite, vanilla CSS, lucide, dnd-kit |
 | Server | Node 22, Express 5 |
-| Database | SQLite via built-in `node:sqlite` (`DatabaseSync`) |
+| Database | SQLite via built-in `node:sqlite` (`DatabaseSync`), or Turso/libSQL when hosted |
 | Auth | `crypto.scrypt`, hashed session tokens, httpOnly cookies |
 
 No native database module is required. The app ships as one Node service that serves both
-the API and the built static client.
+the API and the built static client. The database layer picks its driver at runtime:
+
+- **Local / Docker / Render** — `node:sqlite` writing `DATA_DIR/ascent.db`.
+- **Serverless (Vercel)** — `@libsql/client` against a Turso database, enabled by setting
+  `TURSO_DATABASE_URL` (and `TURSO_AUTH_TOKEN`). The same SQL runs on both.
 
 ## Run locally
 
@@ -275,14 +279,66 @@ PORT=8787
 DATA_DIR=./data
 SESSION_DAYS=30
 COOKIE_SECURE=
+
+# Optional: use Turso/libSQL instead of the local SQLite file
+TURSO_DATABASE_URL=
+TURSO_AUTH_TOKEN=
 ```
 
-- `DATA_DIR` — where `ascent.db` lives. Back this directory up.
+- `DATA_DIR` — where `ascent.db` lives. Back this directory up. Ignored when Turso is configured.
 - `COOKIE_SECURE` — set to `1` behind HTTPS. Leave empty to auto-detect
-  `x-forwarded-proto`; `0` is only for local HTTP testing.
+  `x-forwarded-proto`; `0` is only for local HTTP testing. On Vercel it defaults to `1`.
 - `SESSION_DAYS` — session lifetime in days (default 30).
+- `TURSO_DATABASE_URL` — `libsql://…` URL of a Turso database. Setting it switches the
+  server to the remote driver; `DATA_DIR` is then unused.
+- `TURSO_AUTH_TOKEN` — Turso database token. Required for remote databases.
+
+`LIBSQL_URL` / `LIBSQL_AUTH_TOKEN` are accepted as aliases. `GET /api/health` reports which
+driver is active under `database: "sqlite" | "turso"`.
 
 ## Deploy
+
+### Vercel + Turso
+
+Vercel has no persistent filesystem, so the app uses a Turso database there instead of the
+local SQLite file. `vercel.json` builds the Vite client into `dist/` and serves the API from
+the catch-all function in `api/[...route].js`.
+
+1. **Create the database.** Install the Turso CLI and sign in:
+
+   ```bash
+   turso auth signup
+   turso db create ascent
+   turso db show ascent --url           # copy as TURSO_DATABASE_URL
+   turso db tokens create ascent        # copy as TURSO_AUTH_TOKEN
+   ```
+
+   (The Turso dashboard can do the same thing in the browser.)
+
+2. **Import the repo.** In Vercel choose **Add New → Project**, pick
+   `ascent-study-command-center`, and keep the detected Vite settings. The build command and
+   output directory already come from `vercel.json`.
+
+3. **Set environment variables** (Project → Settings → Environment Variables, all
+   environments):
+
+   | Key | Value |
+   | --- | --- |
+   | `TURSO_DATABASE_URL` | `libsql://ascent-<org>.turso.io` |
+   | `TURSO_AUTH_TOKEN` | the token from step 1 |
+   | `COOKIE_SECURE` | `1` |
+
+   `SESSION_DAYS` is optional (default 30). Do not set `DATA_DIR` on Vercel.
+
+4. **Deploy.** Tables are created on the first request. Check
+   `https://<project>.vercel.app/api/health` — it should report `"database":"turso"`. Then
+   register an account, reload, and confirm the session persists.
+
+Every push to `main` redeploys automatically. Accounts, sessions and planner state live in
+Turso, so they survive redeploys and cold starts.
+
+> The free Vercel plan limits function duration to 10s and Turso free databases have row/storage
+> caps; plenty for personal use. Planner saves are debounced to one request per edit burst.
 
 ### Docker
 
@@ -329,7 +385,11 @@ the topbar sync badge. A `pagehide` beacon catches the last edit when a tab clos
 ## Project map
 
 ```
-server/                 Express API, sqlite database, auth/session helpers
+api/[...route].js       Vercel serverless entry (Express app)
+vercel.json             Vite build + function config
+server/                 Express app, database layer, auth/session helpers
+server/app.js           API routes and static client serving
+server/db.js            SQLite/Turso driver, planner + stats queries
 src/App.tsx             Auth gate
 src/components/         Workspace, AuthView, CommandConsole, board, dashboard…
 src/components/TargetManager.tsx  Targets, target curriculum, archive/restore

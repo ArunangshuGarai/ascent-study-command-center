@@ -1,6 +1,6 @@
 import { createHash, randomBytes, scrypt as scryptCallback, timingSafeEqual } from 'node:crypto';
 import { promisify } from 'node:util';
-import { db, pruneSessions, readStats } from './db.js';
+import { get, run, pruneSessions, readStats } from './db.js';
 
 const scrypt = promisify(scryptCallback);
 const SESSION_DAYS = Math.max(1, Number(process.env.SESSION_DAYS) || 30);
@@ -53,10 +53,10 @@ export function publicUser(row) {
   };
 }
 
-export function accountPayload(row) {
+export async function accountPayload(row) {
   return {
     user: publicUser(row),
-    stats: readStats(row.id),
+    stats: await readStats(row.id),
   };
 }
 
@@ -64,15 +64,15 @@ function hashToken(token) {
   return createHash('sha256').update(token).digest('hex');
 }
 
-export function createSession(userId) {
-  pruneSessions();
+export async function createSession(userId) {
+  await pruneSessions();
   const token = randomBytes(32).toString('hex');
   const now = new Date();
   const expires = new Date(now.getTime() + SESSION_DAYS * 86_400_000);
-  db.prepare(`
+  await run(`
     INSERT INTO sessions (id, user_id, created_at, expires_at, last_seen_at)
     VALUES (?, ?, ?, ?, ?)
-  `).run(hashToken(token), userId, now.toISOString(), expires.toISOString(), now.toISOString());
+  `, [hashToken(token), userId, now.toISOString(), expires.toISOString(), now.toISOString()]);
   return { token, expiresAt: expires.toISOString() };
 }
 
@@ -94,29 +94,29 @@ export function parseCookies(header) {
   return jar;
 }
 
-export function sessionFromRequest(req) {
+export async function sessionFromRequest(req) {
   const token = parseCookies(req.headers.cookie).ascent_session;
   if (!token) return null;
-  const row = db.prepare(`
+  const row = await get(`
     SELECT s.id AS session_id, s.expires_at, u.*
     FROM sessions s
     JOIN users u ON u.id = s.user_id
     WHERE s.id = ? AND s.expires_at > ?
-  `).get(hashToken(token), new Date().toISOString());
+  `, [hashToken(token), new Date().toISOString()]);
   if (!row) return null;
   // Touch at most once per hour to keep writes cheap.
   const lastSeen = new Date().toISOString();
-  db.prepare(`
+  await run(`
     UPDATE sessions SET last_seen_at = ?
     WHERE id = ? AND last_seen_at < ?
-  `).run(lastSeen, row.session_id, new Date(Date.now() - 3_600_000).toISOString());
+  `, [lastSeen, row.session_id, new Date(Date.now() - 3_600_000).toISOString()]);
   return row;
 }
 
-export function destroySession(req) {
+export async function destroySession(req) {
   const token = parseCookies(req.headers.cookie).ascent_session;
   if (!token) return;
-  db.prepare('DELETE FROM sessions WHERE id = ?').run(hashToken(token));
+  await run('DELETE FROM sessions WHERE id = ?', [hashToken(token)]);
 }
 
 export function sessionCookie(token, expiresAt, secure) {
@@ -136,5 +136,5 @@ export function clearSessionCookie() {
 }
 
 export function findUserByEmail(email) {
-  return db.prepare('SELECT * FROM users WHERE email = ? COLLATE NOCASE').get(normalizeEmail(email));
+  return get('SELECT * FROM users WHERE email = ? COLLATE NOCASE', [normalizeEmail(email)]);
 }
