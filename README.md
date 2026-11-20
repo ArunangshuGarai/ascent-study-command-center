@@ -338,6 +338,19 @@ Express app used locally.
 Every push to `main` redeploys automatically. Accounts, sessions and planner state live in
 Turso, so they survive redeploys and cold starts.
 
+#### Copying a local database into Turso
+
+`scripts/migrate-turso.mjs` copies accounts, password hashes, planner states and stats from
+`data/ascent.db` into the Turso database, matching users by email:
+
+```bash
+TURSO_DATABASE_URL=libsql://... TURSO_AUTH_TOKEN=... \
+  node --experimental-sqlite scripts/migrate-turso.mjs
+```
+
+Existing rows for the same email are replaced, so it is safe to re-run. Sessions are not
+copied — each browser signs in once against the new host.
+
 > The free Vercel plan limits function duration to 10s and Turso free databases have row/storage
 > caps; plenty for personal use. Planner saves are debounced to one request per edit burst.
 
