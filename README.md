@@ -301,8 +301,9 @@ driver is active under `database: "sqlite" | "turso"`.
 ### Vercel + Turso
 
 Vercel has no persistent filesystem, so the app uses a Turso database there instead of the
-local SQLite file. `vercel.json` builds the Vite client into `dist/` and serves the API from
-the catch-all function in `api/[...route].js`.
+local SQLite file. `vercel.json` builds the Vite client into `dist/`, rewrites every `/api/*`
+path to the single serverless function in `api/index.js`, and that function mounts the same
+Express app used locally.
 
 1. **Create the database.** Install the Turso CLI and sign in:
 
@@ -385,8 +386,8 @@ the topbar sync badge. A `pagehide` beacon catches the last edit when a tab clos
 ## Project map
 
 ```
-api/[...route].js       Vercel serverless entry (Express app)
-vercel.json             Vite build + function config
+api/index.js            Vercel serverless entry (Express app, all /api routes)
+vercel.json             Vite build, /api rewrite and function config
 server/                 Express app, database layer, auth/session helpers
 server/app.js           API routes and static client serving
 server/db.js            SQLite/Turso driver, planner + stats queries

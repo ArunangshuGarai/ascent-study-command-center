@@ -92,19 +92,12 @@ const asyncRoute = (handler) => (req, res, next) => {
   Promise.resolve(handler(req, res, next)).catch(next);
 };
 
-app.get('/api/health', (req, res) => {
+app.get('/api/health', (_req, res) => {
   res.json({
     ok: true,
     service: 'ascent-gate-command-center',
     database: databaseMode(),
     time: new Date().toISOString(),
-    debug: {
-      url: req.url,
-      originalUrl: req.originalUrl,
-      vercel: Object.fromEntries(
-        Object.entries(req.headers).filter(([key]) => key.startsWith('x-vercel')),
-      ),
-    },
   });
 });
 
