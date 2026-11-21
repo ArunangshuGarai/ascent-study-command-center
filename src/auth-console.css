@@ -241,7 +241,7 @@
     linear-gradient(180deg, rgba(255, 255, 255, 0.025), transparent 72%);
   overflow: hidden;
   transform: rotateX(calc(var(--tilt-x) * 0.55)) rotateY(calc(var(--tilt-y) * 0.55));
-  transition: transform 180ms ease-out;
+  transition: transform 180ms var(--ease-out);
 }
 
 .auth-stage::before {
@@ -453,7 +453,15 @@
   height: 3px;
   border-radius: 99px;
   background: rgba(255, 255, 255, 0.12);
-  transition: all 200ms var(--ease);
+  transition:
+    color 200ms var(--ease),
+    background-color 200ms var(--ease),
+    border-color 200ms var(--ease),
+    box-shadow 200ms var(--ease),
+    transform 200ms var(--ease),
+    opacity 200ms var(--ease),
+    filter 200ms var(--ease),
+    outline-color 200ms var(--ease);
 }
 
 .auth-signal-dot.is-active {
@@ -752,7 +760,15 @@
   flex: none;
   border-radius: 6px;
   color: var(--muted-dim);
-  transition: all 160ms var(--ease);
+  transition:
+    color 160ms var(--ease),
+    background-color 160ms var(--ease),
+    border-color 160ms var(--ease),
+    box-shadow 160ms var(--ease),
+    transform 160ms var(--ease),
+    opacity 160ms var(--ease),
+    filter 160ms var(--ease),
+    outline-color 160ms var(--ease);
 }
 
 .auth-eye:hover { color: var(--text-soft); background: rgba(255, 255, 255, 0.05); }
@@ -845,7 +861,15 @@
   font-weight: 700;
   letter-spacing: 0.01em;
   box-shadow: 0 12px 26px -12px rgba(216, 255, 106, 0.55), 0 1px 0 rgba(255, 255, 255, 0.4) inset;
-  transition: all 200ms var(--ease);
+  transition:
+    color 200ms var(--ease),
+    background-color 200ms var(--ease),
+    border-color 200ms var(--ease),
+    box-shadow 200ms var(--ease),
+    transform 200ms var(--ease),
+    opacity 200ms var(--ease),
+    filter 200ms var(--ease),
+    outline-color 200ms var(--ease);
 }
 
 .auth-submit:hover:not(:disabled) {
@@ -1018,7 +1042,15 @@
     radial-gradient(120% 180% at 0% 0%, rgba(216, 255, 106, 0.14), transparent 65%),
     rgba(216, 255, 106, 0.035);
   text-align: left;
-  transition: all 190ms var(--ease);
+  transition:
+    color 190ms var(--ease),
+    background-color 190ms var(--ease),
+    border-color 190ms var(--ease),
+    box-shadow 190ms var(--ease),
+    transform 190ms var(--ease),
+    opacity 190ms var(--ease),
+    filter 190ms var(--ease),
+    outline-color 190ms var(--ease);
 }
 
 .sidebar-command-cta:hover {
@@ -1137,7 +1169,15 @@
   flex: none;
   border-radius: 6px;
   color: var(--muted-dim);
-  transition: all 160ms var(--ease);
+  transition:
+    color 160ms var(--ease),
+    background-color 160ms var(--ease),
+    border-color 160ms var(--ease),
+    box-shadow 160ms var(--ease),
+    transform 160ms var(--ease),
+    opacity 160ms var(--ease),
+    filter 160ms var(--ease),
+    outline-color 160ms var(--ease);
 }
 
 .sidebar-signout:hover {
@@ -1158,7 +1198,15 @@
   font-size: 8.5px;
   font-weight: 600;
   white-space: nowrap;
-  transition: all 180ms var(--ease);
+  transition:
+    color 180ms var(--ease),
+    background-color 180ms var(--ease),
+    border-color 180ms var(--ease),
+    box-shadow 180ms var(--ease),
+    transform 180ms var(--ease),
+    opacity 180ms var(--ease),
+    filter 180ms var(--ease),
+    outline-color 180ms var(--ease);
 }
 
 .topbar-sync:hover { border-color: rgba(139, 232, 184, 0.3); background: rgba(139, 232, 184, 0.08); }
@@ -1188,7 +1236,15 @@
   font-size: 9.5px;
   font-weight: 600;
   white-space: nowrap;
-  transition: all 180ms var(--ease);
+  transition:
+    color 180ms var(--ease),
+    background-color 180ms var(--ease),
+    border-color 180ms var(--ease),
+    box-shadow 180ms var(--ease),
+    transform 180ms var(--ease),
+    opacity 180ms var(--ease),
+    filter 180ms var(--ease),
+    outline-color 180ms var(--ease);
 }
 
 .topbar-command:hover {
@@ -1215,7 +1271,15 @@
   font-family: var(--font-display);
   font-size: 12px;
   font-weight: 700;
-  transition: all 180ms var(--ease);
+  transition:
+    color 180ms var(--ease),
+    background-color 180ms var(--ease),
+    border-color 180ms var(--ease),
+    box-shadow 180ms var(--ease),
+    transform 180ms var(--ease),
+    opacity 180ms var(--ease),
+    filter 180ms var(--ease),
+    outline-color 180ms var(--ease);
 }
 
 .topbar-avatar:hover {
@@ -1445,7 +1509,15 @@
     radial-gradient(220px 100px at 0% 0%, rgba(216, 255, 106, 0.1), transparent 65%),
     rgba(216, 255, 106, 0.025);
   text-align: left;
-  transition: all 200ms var(--ease);
+  transition:
+    color 200ms var(--ease),
+    background-color 200ms var(--ease),
+    border-color 200ms var(--ease),
+    box-shadow 200ms var(--ease),
+    transform 200ms var(--ease),
+    opacity 200ms var(--ease),
+    filter 200ms var(--ease),
+    outline-color 200ms var(--ease);
 }
 
 .hero-command-bar:hover {
@@ -1726,7 +1798,15 @@
   color: var(--muted);
   font-size: 8.5px;
   text-align: left;
-  transition: all 160ms var(--ease);
+  transition:
+    color 160ms var(--ease),
+    background-color 160ms var(--ease),
+    border-color 160ms var(--ease),
+    box-shadow 160ms var(--ease),
+    transform 160ms var(--ease),
+    opacity 160ms var(--ease),
+    filter 160ms var(--ease),
+    outline-color 160ms var(--ease);
 }
 
 .console-chip svg { color: var(--violet); }
@@ -1824,7 +1904,15 @@
   border-radius: 5px;
   color: var(--muted);
   font-size: 8px;
-  transition: all 160ms var(--ease);
+  transition:
+    color 160ms var(--ease),
+    background-color 160ms var(--ease),
+    border-color 160ms var(--ease),
+    box-shadow 160ms var(--ease),
+    transform 160ms var(--ease),
+    opacity 160ms var(--ease),
+    filter 160ms var(--ease),
+    outline-color 160ms var(--ease);
 }
 
 .console-restore:hover { color: var(--lime); border-color: var(--line-lime); }
@@ -2001,7 +2089,15 @@
   height: 24px;
   border-radius: 6px;
   color: var(--muted-dim);
-  transition: all 150ms var(--ease);
+  transition:
+    color 150ms var(--ease),
+    background-color 150ms var(--ease),
+    border-color 150ms var(--ease),
+    box-shadow 150ms var(--ease),
+    transform 150ms var(--ease),
+    opacity 150ms var(--ease),
+    filter 150ms var(--ease),
+    outline-color 150ms var(--ease);
 }
 
 .console-block-remove:hover { color: var(--rose); background: rgba(255, 143, 164, 0.09); }

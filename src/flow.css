@@ -561,7 +561,15 @@
   background: transparent;
   color: var(--muted);
   font-size: 9px;
-  transition: all 180ms var(--ease);
+  transition:
+    color 180ms var(--ease),
+    background-color 180ms var(--ease),
+    border-color 180ms var(--ease),
+    box-shadow 180ms var(--ease),
+    transform 180ms var(--ease),
+    opacity 180ms var(--ease),
+    filter 180ms var(--ease),
+    outline-color 180ms var(--ease);
 }
 
 .flow-preview-chip:hover {

@@ -122,7 +122,7 @@ export function CommandPalette({
   };
 
   return (
-    <Modal open={open} onClose={onClose} className="palette-modal" wide>
+    <Modal open={open} onClose={onClose} className="palette-modal" wide instant>
       <div className="palette-search">
         <Search size={19} />
         <input

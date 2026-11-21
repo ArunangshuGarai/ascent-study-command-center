@@ -246,6 +246,7 @@ export function Modal({
   labelledBy,
   closable = true,
   wide,
+  instant,
 }: {
   open: boolean;
   onClose: () => void;
@@ -254,6 +255,8 @@ export function Modal({
   labelledBy?: string;
   closable?: boolean;
   wide?: boolean;
+  /** Skip the entrance animation for keyboard-launched, high-frequency surfaces. */
+  instant?: boolean;
 }) {
   useEffect(() => {
     if (!open) return;
@@ -270,7 +273,7 @@ export function Modal({
   }, [open, onClose, closable]);
   if (!open) return null;
   return createPortal(
-    <div className={cx('modal-layer', wide && 'modal-wide')} role="presentation">
+    <div className={cx('modal-layer', wide && 'modal-wide', instant && 'modal-instant')} role="presentation">
       <button className="modal-backdrop" aria-label="Close dialog" onClick={onClose} tabIndex={-1} />
       <div
         className={cx('modal-panel', className)}

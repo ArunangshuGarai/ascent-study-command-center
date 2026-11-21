@@ -157,7 +157,14 @@ export function CommandConsole({
   }, [blocks]);
 
   return (
-    <Modal open={open} onClose={onClose} className="command-console-modal" wide labelledBy="command-console-title">
+    <Modal
+      open={open}
+      onClose={onClose}
+      className="command-console-modal"
+      wide
+      instant
+      labelledBy="command-console-title"
+    >
       <div className="console-scanline" aria-hidden />
       <div className="modal-heading console-heading">
         <div className="console-heading-mark">

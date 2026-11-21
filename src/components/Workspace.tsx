@@ -533,7 +533,7 @@ export function Workspace({
             onOpenSettings={() => navigate('settings')}
             onOpenRipple={() => setRippleOpen(true)}
           />
-          <main className="app-content">{renderView()}</main>
+          <main className="app-content view-swap" key={route.view}>{renderView()}</main>
         </div>
 
         <MobileNav view={route.view} navigate={navigate} onOpenPrompt={() => setPromptOpen(true)} />

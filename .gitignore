@@ -27,3 +27,7 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Agent skill mirrors (canonical install lives in .agents/)
+.claude/
+agent/
